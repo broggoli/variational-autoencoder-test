@@ -1,7 +1,7 @@
 """Functions for downloading and reading MNIST data."""
 import gzip
 import os
-import urllib
+import urllib.request
 import numpy
 SOURCE_URL = 'http://yann.lecun.com/exdb/mnist/'
 
@@ -12,9 +12,9 @@ def maybe_download(filename, work_directory):
         os.mkdir(work_directory)
     filepath = os.path.join(work_directory, filename)
     if not os.path.exists(filepath):
-        filepath, _ = urllib.urlretrieve(SOURCE_URL + filename, filepath)
+        filepath, _ = urllib.request.urlretrieve(SOURCE_URL + filename, filepath)
         statinfo = os.stat(filepath)
-        print 'Succesfully downloaded', filename, statinfo.st_size, 'bytes.'
+        print('Succesfully downloaded', filename, statinfo.st_size, 'bytes.')
     return filepath
 
 
@@ -22,24 +22,25 @@ def _read32(bytestream):
     dt = numpy.dtype(numpy.uint32).newbyteorder('>')
     return numpy.frombuffer(bytestream.read(4), dtype=dt)
 
-
 def extract_images(filename):
-    """Extract the images into a 4D uint8 numpy array [index, y, x, depth]."""
-    print 'Extracting', filename
-    with gzip.open(filename) as bytestream:
-        magic = _read32(bytestream)
-        if magic != 2051:
-            raise ValueError(
-                'Invalid magic number %d in MNIST image file: %s' %
-                (magic, filename))
-        num_images = _read32(bytestream)
-        rows = _read32(bytestream)
-        cols = _read32(bytestream)
-        buf = bytestream.read(rows * cols * num_images)
-        data = numpy.frombuffer(buf, dtype=numpy.uint8)
-        data = data.reshape(num_images, rows, cols, 1)
-        return data
-
+  """Extract the images into a 4D uint8 numpy array [index, y, x, depth]."""
+  print('Extracting', filename)
+  with open(filename, 'rb') as f, gzip.GzipFile(fileobj=f) as bytestream:
+    magic = _read32(bytestream)
+    if magic != 2051:
+      raise ValueError('Invalid magic number %d in MNIST image file: %s' %
+                       (magic, filename))
+    num_images = _read32(bytestream)
+    rows = _read32(bytestream)
+    cols = _read32(bytestream)
+    print(rows, cols, num_images)
+    buf = bytestream.read((rows * cols * num_images)[0])
+    data = numpy.frombuffer(buf, dtype=numpy.uint8)
+    # print(data.shape)
+    # print(num_images[0], rows[0], cols[0], 1)
+    # print(num_images, rows, cols, 1)
+    data = data.reshape(num_images[0], rows[0], cols[0], 1)
+    return data
 
 def dense_to_one_hot(labels_dense, num_classes=10):
     """Convert class labels from scalars to one-hot vectors."""
@@ -52,7 +53,7 @@ def dense_to_one_hot(labels_dense, num_classes=10):
 
 def extract_labels(filename, one_hot=False):
     """Extract the labels into a 1D uint8 numpy array [index]."""
-    print 'Extracting', filename
+    print('Extracting', filename)
     with gzip.open(filename) as bytestream:
         magic = _read32(bytestream)
         if magic != 2049:
@@ -60,7 +61,7 @@ def extract_labels(filename, one_hot=False):
                 'Invalid magic number %d in MNIST label file: %s' %
                 (magic, filename))
         num_items = _read32(bytestream)
-        buf = bytestream.read(num_items)
+        buf = bytestream.read(num_items[0])
         labels = numpy.frombuffer(buf, dtype=numpy.uint8)
         if one_hot:
             return dense_to_one_hot(labels)
@@ -108,10 +109,10 @@ class DataSet(object):
     def next_batch(self, batch_size, fake_data=False):
         """Return the next `batch_size` examples from this data set."""
         if fake_data:
-            fake_image = [1.0 for _ in xrange(784)]
+            fake_image = [1.0 for _ in range(784)]
             fake_label = 0
-            return [fake_image for _ in xrange(batch_size)], [
-                fake_label for _ in xrange(batch_size)]
+            return [fake_image for _ in range(batch_size)], [
+                fake_label for _ in range(batch_size)]
         start = self._index_in_epoch
         self._index_in_epoch += batch_size
         if self._index_in_epoch > self._num_examples:

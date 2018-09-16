@@ -68,12 +68,12 @@ class LatentAttention():
                     batch = self.mnist.train.next_batch(self.batchsize)[0]
                     _, gen_loss, lat_loss = sess.run((self.optimizer, self.generation_loss, self.latent_loss), feed_dict={self.images: batch})
                     # dumb hack to print cost every epoch
-                    if idx % (self.n_samples - 3) == 0:
-                        print "epoch %d: genloss %f latloss %f" % (epoch, np.mean(gen_loss), np.mean(lat_loss))
-                        saver.save(sess, os.getcwd()+"/training/train",global_step=epoch)
-                        generated_test = sess.run(self.generated_images, feed_dict={self.images: visualization})
-                        generated_test = generated_test.reshape(self.batchsize,28,28)
-                        ims("results/"+str(epoch)+".jpg",merge(generated_test[:64],[8,8]))
+                    percentDone =  idx * self.batchsize / self.n_samples * 100
+                    print("%f%% --> epoch %d: genloss %f latloss %f" % (percentDone, epoch, np.mean(gen_loss), np.mean(lat_loss)))
+                    saver.save(sess, os.getcwd()+"/training/train",global_step=epoch)
+                    generated_test = sess.run(self.generated_images, feed_dict={self.images: visualization})
+                    generated_test = generated_test.reshape(self.batchsize,28,28)
+                    ims("results/"+str(epoch)+".jpg",merge(generated_test[:64],[8,8]))
 
 
 model = LatentAttention()
